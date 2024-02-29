@@ -1,0 +1,46 @@
+@Library('my-shared-library') _
+
+keycloak{
+    image_name = 'hex-key-db'
+    image_tag = 'NPI05_RELEASE_3'
+    registry_url = 'gcr.io/spheric-tea-19814/hex-key-db'
+  }
+
+
+
+
+
+
+def call(body) {
+    // evaluate the body block, and collect configuration into the object
+    def pipelineParams= [:]
+    body.resolveStrategy = Closure.DELEGATE_FIRST
+    body.delegate = pipelineParams
+    body()
+    
+pipeline {
+    agent  {label 'master'}
+    stages {
+ 	  	stage("Build Docker Image") {
+			steps {
+				dockerBuild(pipelineParams.registry_url, pipelineParams.image_tag)
+                
+		  }
+		}
+		stage("Push Image On GCR") {
+		   steps {
+		       
+      			dockerPush(pipelineParams.image_name, pipelineParams.image_tag)
+               
+                
+			 }
+		  }
+		stage("Delete Image from Jenkins") {
+		   steps {
+      			dockerRemoveImage(pipelineParams.image_name,  pipelineParams.image_tag)
+                                
+			 }
+		  }
+    }
+}
+}
